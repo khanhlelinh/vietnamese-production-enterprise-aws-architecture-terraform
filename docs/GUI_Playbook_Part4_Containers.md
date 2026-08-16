@@ -1,65 +1,144 @@
-# 📘 Cẩm nang Triển khai AWS Console (GUI Playbook)
-**Phần 4:** Containers & Microservices (Ứng dụng & Nền tảng SOP)
+# Hướng dẫn Triển khai AWS Console - Phần 4: Containers & Microservices (EKS, ECR)
 
----
+Tài liệu này cung cấp hướng dẫn chi tiết từng bước trên giao diện AWS Management Console để triển khai các dịch vụ container cho dự án Vietnamese Production Enterprise (VPE).
 
-## 4.1 Khởi tạo ECR Repository (Kho chứa Docker Image)
-*Nơi lưu trữ mã nguồn đã đóng gói của VPE Sales App, SOP Platform và Poultry API.*
+## 1. Tạo ECR Repository cho Sales Backend
 
-**Điều hướng:** 🔍 Ô tìm kiếm 👉 Gõ `ECR` 👉 Bấm vào **Elastic Container Registry** 👉 Bấm nút màu cam **[Create repository]**
+1. Đăng nhập vào AWS Management Console, tìm kiếm **ECR** và chọn **Elastic Container Registry**.
+2. Nhấn nút **Create repository** màu cam.
+3. Trong phần General settings:
+   - **Visibility settings**: Chọn **Private**.
+   - **Repository name**: Nhập `vpe/sales-app-backend`.
+   - **Tag mutability**: Chọn **Mutable**.
+4. Kéo xuống phần **Image scan settings**:
+   - Bật **Scan on push** (Enabled).
+5. Nhấn nút **Create repository** ở dưới cùng.
 
-### 🖼️ Màn hình "Create repository"
+![ECR Create Repository - Sales Backend](images/ecr_sales_backend.png)
 
-| 🎯 Khu vực trên màn hình | 📝 Thao tác / Giá trị bạn cần nhập |
-| :--- | :--- |
-| **Visibility settings** | 🔘 Chọn `Private` |
-| **Repository name** | Nhập `vpe/sales-app-backend` |
-| **Tag mutability** | 🔘 Chọn `Mutable` |
-| **Image scan settings** | ☑️ Bật tính năng `Scan on push` |
-| *Nút bấm cuối trang* | Bấm nút cam **[Create repository]** |
+## 2. Tạo ECR Repository cho SOP Platform
 
-*(Lặp lại bước này để tạo thêm 2 repo: `vpe/sop-platform` và `vpe/poultry-production-api`)*
+1. Lặp lại các bước tương tự như trên.
+2. Trên trang **Create repository**:
+   - **Visibility settings**: Chọn **Private**.
+   - **Repository name**: Nhập `vpe/sop-platform`.
+   - **Tag mutability**: Chọn **Mutable**.
+   - **Scan on push**: Bật (Enabled).
+3. Nhấn **Create repository**.
 
----
+![ECR Create Repository - SOP Platform](images/ecr_sop_platform.png)
 
-## 4.2 Khởi tạo EKS Cluster (Cụm Kubernetes)
-*Trung tâm điều phối toàn bộ các Microservices của VPE.*
+## 3. Tạo ECR Repository cho Poultry Production
 
-**Điều hướng:** 🔍 Ô tìm kiếm 👉 Gõ `EKS` 👉 Bấm vào **Elastic Kubernetes Service** 👉 Bấm nút **[Add cluster]** 👉 Chọn **[Create]**
+1. Tương tự, trên trang **Create repository**:
+   - **Visibility settings**: Chọn **Private**.
+   - **Repository name**: Nhập `vpe/poultry-production-api`.
+   - **Tag mutability**: Chọn **Mutable**.
+   - **Scan on push**: Bật (Enabled).
+3. Nhấn **Create repository**.
 
-### 🖼️ Màn hình "Configure cluster"
+![ECR Create Repository - Poultry Production](images/ecr_poultry_production.png)
 
-| 🎯 Khu vực trên màn hình | 📝 Thao tác / Giá trị bạn cần nhập |
-| :--- | :--- |
-| **Name** | Nhập `vpe-prod-eks-cluster` |
-| **Kubernetes version** | 🔽 Chọn phiên bản mới nhất (Ví dụ: `1.28`) |
-| **Cluster service role** | 🔽 Chọn IAM Role có tên `vpe-eks-cluster-role` |
-| **Secrets encryption** | ☑️ Bật và chọn một KMS Key (Tùy chọn bảo mật cao) |
-| *Bấm Next sang phần Mạng* | |
-| **VPC** | 🔽 Chọn `vpe-prod-core-vpc` |
-| **Subnets** | ☑️ Chỉ chọn các Subnet `Private` |
-| **Cluster endpoint access** | 🔘 Chọn `Private` *(Vì bảo mật nội bộ)* |
-| *Nút bấm cuối trang* | Bấm nút cam **[Create]** |
+## 4. Tạo IAM Role cho EKS Cluster
 
-*(Đợi cụm EKS tạo xong sẽ mất từ 10-15 phút)*
+1. Chuyển sang dịch vụ **IAM** từ thanh tìm kiếm.
+2. Chọn **Roles** ở menu bên trái, sau đó nhấn **Create role**.
+3. Trong bước Select trusted entity:
+   - **Trusted entity type**: Chọn **AWS service**.
+   - **Use case**: Tìm và chọn **EKS - Cluster**.
+   - Nhấn **Next**.
+4. Trong bước Add permissions, chính sách `AmazonEKSClusterPolicy` đã được tự động chọn. Nhấn **Next**.
+5. Trong bước Name, review, and create:
+   - **Role name**: Nhập `vpe-eks-cluster-role`.
+6. Nhấn **Create role**.
 
----
+![IAM Create Role - EKS Cluster](images/iam_eks_cluster_role.png)
 
-## 4.3 Cấu hình EKS Fargate Profiles
-*Đổi từ kiến trúc chạy máy chủ EC2 truyền thống sang Serverless Fargate để tiết kiệm chi phí.*
+## 5. Tạo IAM Role cho Fargate
 
-**Điều hướng:** Trong màn hình chi tiết của Cluster `vpe-prod-eks-cluster` vừa tạo 👉 Chọn tab **Compute** 👉 Kéo xuống mục Fargate profiles 👉 Bấm nút **[Add Fargate profile]**
+1. Trên trang IAM Roles, nhấn **Create role** một lần nữa.
+2. Trong bước Select trusted entity:
+   - **Trusted entity type**: Chọn **AWS service**.
+   - **Use case**: Tìm và chọn **EKS - Fargate pod**.
+   - Nhấn **Next**.
+3. Trong bước Add permissions, chính sách `AmazonEKSFargatePodExecutionRolePolicy` đã được tự động chọn. Nhấn **Next**.
+4. Trong bước Name, review, and create:
+   - **Role name**: Nhập `vpe-fargate-execution-role`.
+5. Nhấn **Create role**.
 
-### 🖼️ Màn hình "Configure Fargate profile"
+![IAM Create Role - Fargate](images/iam_fargate_role.png)
 
-| 🎯 Khu vực trên màn hình | 📝 Thao tác / Giá trị bạn cần nhập |
-| :--- | :--- |
-| **Name** | Nhập `vpe-sales-workloads` |
-| **Pod execution role** | 🔽 Chọn IAM Role có tên `vpe-fargate-execution-role` |
-| **Subnets** | ☑️ Chọn các Private Subnets |
-| *Bấm Next* | |
-| **Namespace match** | Nhập `vpe-sales` (Mọi Pod trong namespace này sẽ tự động được chạy trên Fargate) |
-| *Nút bấm cuối trang* | Bấm nút cam **[Create]** |
+## 6. Tạo EKS Cluster
 
----
-Hoàn thành Phần 4. Mời bạn tiếp tục với Phần 5.
+1. Tìm kiếm và mở dịch vụ **EKS** (Elastic Kubernetes Service).
+2. Nhấn **Add cluster** và chọn **Create**.
+3. Bước 1 - Configure cluster:
+   - **Name**: Nhập `vpe-prod-eks-cluster`.
+   - **Kubernetes version**: Chọn **1.28**.
+   - **Cluster service role**: Chọn `vpe-eks-cluster-role`.
+   - Nhấn **Next**.
+4. Bước 2 - Specify networking:
+   - **VPC**: Chọn `vpe-prod-core-vpc`.
+   - **Subnets**: Đảm bảo chỉ chọn các private subnets (bỏ chọn các public subnets).
+   - **Cluster endpoint access**: Chọn **Private**.
+   - Nhấn **Next**.
+5. Tiếp tục nhấn **Next** qua các bước còn lại và cuối cùng nhấn **Create**. (Lưu ý: Quá trình tạo cluster có thể mất 10-15 phút).
+
+![EKS Create Cluster](images/eks_create_cluster.png)
+
+## 7. Tạo Fargate Profile cho SOP
+
+1. Sau khi Cluster trạng thái chuyển sang `Active`, nhấp vào tên cluster `vpe-prod-eks-cluster`.
+2. Chuyển sang tab **Compute**.
+3. Kéo xuống phần **Fargate profiles** và nhấn **Add Fargate profile**.
+4. Cấu hình profile:
+   - **Name**: Nhập `vpe-sop-workloads`.
+   - **Pod execution role**: Chọn `vpe-fargate-execution-role`.
+   - **Subnets**: Đảm bảo các private subnets được chọn.
+   - Nhấn **Next**.
+5. Pod selectors:
+   - **Namespace**: Nhập `vpe-sop`.
+6. Nhấn **Next** sau đó nhấn **Create**.
+
+![EKS Add Fargate Profile - SOP](images/fargate_sop.png)
+
+## 8. Tạo Fargate Profile cho Sales
+
+1. Quay lại tab **Compute** của cluster, nhấn **Add Fargate profile**.
+2. Cấu hình profile:
+   - **Name**: Nhập `vpe-sales-workloads`.
+   - **Pod execution role**: Chọn `vpe-fargate-execution-role`.
+   - **Subnets**: Đảm bảo các private subnets được chọn.
+   - Nhấn **Next**.
+3. Pod selectors:
+   - **Namespace**: Nhập `vpe-sales`.
+4. Nhấn **Next** sau đó nhấn **Create**.
+
+![EKS Add Fargate Profile - Sales](images/fargate_sales.png)
+
+## 9. Tạo Fargate Profile cho Poultry
+
+1. Quay lại tab **Compute** của cluster, nhấn **Add Fargate profile**.
+2. Cấu hình profile:
+   - **Name**: Nhập `vpe-poultry-workloads`.
+   - **Pod execution role**: Chọn `vpe-fargate-execution-role`.
+   - **Subnets**: Đảm bảo các private subnets được chọn.
+   - Nhấn **Next**.
+3. Pod selectors:
+   - **Namespace**: Nhập `vpe-poultry`.
+4. Nhấn **Next** sau đó nhấn **Create**.
+
+![EKS Add Fargate Profile - Poultry](images/fargate_poultry.png)
+
+## 10. Đẩy (Push) Docker Image lên ECR
+
+1. Mở lại dịch vụ **ECR** và nhấp vào repository `vpe/sales-app-backend` (hoặc các repository khác).
+2. Nhấn nút **View push commands** ở góc trên bên phải.
+3. Một hộp thoại sẽ hiện ra hiển thị 4 bước lệnh cho macOS/Linux hoặc Windows:
+   - Lấy token xác thực Docker login.
+   - Xây dựng (build) Docker image.
+   - Gắn thẻ (tag) cho image.
+   - Đẩy (push) image lên repository.
+4. Sao chép và chạy lần lượt các lệnh này trong Terminal/Command Prompt trên máy tính có chứa mã nguồn dự án.
+
+![ECR View Push Commands](images/ecr_push_commands.png)

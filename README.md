@@ -12,9 +12,29 @@ The infrastructure is built on AWS Region `ap-southeast-1` (Singapore) using a m
 2.  **Domain 2 - Sales & Commerce:** CRM, Enterprise Feed Sales App, Pay On (E-Wallet), Online Shop.
 3.  **Domain 3 - Farm, Food, IoT:** Farm Monitoring, Camera AI, IoT Ingestion, Data Lake & Analytics.
 
-## Directory Structure
+## Project Structure
 
-*   `environments/`: Contains environment-specific configurations (`dev`, `staging`, `prod`). The `prod` environment is the primary entrypoint.
+- `environments/prod`: Production environment deployment configurations.
+- `modules/`: Reusable Terraform modules for different architectural layers.
+- `docs/`: Comprehensive GUI Playbooks for step-by-step manual AWS Console deployment.
+- `.github/workflows`: Enterprise CI/CD pipeline for automated Terraform Plan & Apply.
+
+## Continuous Integration / Continuous Deployment (CI/CD)
+
+This project utilizes **GitHub Actions** for automated infrastructure deployment. 
+- **PRs to `main`**: Automatically triggers `terraform plan` to preview changes and validate syntax.
+- **Merge to `main`**: Automatically triggers `terraform apply` using secure AWS OIDC Authentication.
+
+## Manual GUI Playbook (ClickOps)
+
+For training and auditing purposes, a complete set of "UI Map" documentation is provided in the `/docs` directory. These playbooks offer a 1-to-1 replication of the AWS Console UI to manually deploy:
+1. Network & Security (VPC, Transit Gateway)
+2. Core Enterprise (EC2 SAP HANA, RDS Oracle)
+3. Databases (Aurora, DynamoDB) & Data Lake
+4. Containers (EKS, ECR)
+5. IoT Core & Machine Learning (SageMaker)
+6. Serverless (API Gateway, SQS, SNS)
+
 *   `modules/`: Reusable Terraform modules categorizing different aspects of the architecture:
     *   `network`: VPCs, Subnets, TGW, Route53, Load Balancers.
     *   `security_and_mgmt`: IAM, WAF, Security Hub, Config, CloudTrail.
